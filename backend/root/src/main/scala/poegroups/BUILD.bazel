@@ -1,0 +1,37 @@
+load("//:scala_version.bzl", "add_scala_ver")
+
+scala_library(
+    name = "root",
+    srcs = glob(["*.scala"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        add_scala_ver("@maven//:org_typelevel_cats_core"),
+        add_scala_ver("@maven//:org_typelevel_cats_kernel"),
+        add_scala_ver("@maven//:org_typelevel_cats_effect"),
+        add_scala_ver("@maven//:org_typelevel_cats_free"),
+        add_scala_ver("@maven//:org_http4s_http4s_dsl"),
+        add_scala_ver("@maven//:org_http4s_http4s_blaze_server"),
+        add_scala_ver("@maven//:co_fs2_fs2_core"),
+        add_scala_ver("@maven//:org_http4s_http4s_core"),
+        add_scala_ver("@maven//:org_http4s_http4s_server"),
+        add_scala_ver("@maven//:org_http4s_http4s_blaze_core"),
+        add_scala_ver("@maven//:org_http4s_http4s_circe"),
+        add_scala_ver("@maven//:org_http4s_http4s_jawn"),
+        add_scala_ver("@maven//:io_circe_circe_core"),
+        add_scala_ver("@maven//:io_circe_circe_parser"),
+        add_scala_ver("@maven//:org_tpolecat_doobie_core"),
+        add_scala_ver("@maven//:org_tpolecat_doobie_hikari"),
+        add_scala_ver("@maven//:org_tpolecat_doobie_free"),
+        add_scala_ver("@maven//:org_gnieh_diffson_circe"),
+        add_scala_ver("@maven//:org_gnieh_diffson_core"),
+        add_scala_ver("@maven//:com_github_ghostdogpr_caliban"),
+        add_scala_ver("@maven//:com_github_ghostdogpr_caliban_cats"),
+        add_scala_ver("@maven//:com_github_ghostdogpr_caliban_http4s"),
+        add_scala_ver("@maven//:com_github_ghostdogpr_caliban_macros"),
+        add_scala_ver("@maven//:com_propensive_mercator"),
+        add_scala_ver("@maven//:com_propensive_magnolia"),
+
+        add_scala_ver("@maven//:dev_zio_zio"),
+
+    ]
+)

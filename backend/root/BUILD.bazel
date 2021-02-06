@@ -1,0 +1,19 @@
+
+scala_library(
+    name = "server",
+    visibility = ["//visibility:public"],
+    deps = ["//root/src/main/scala/poegroups:root"],
+)
+
+scala_binary(
+    name = "server-bin",
+    main_class = "poegroups.Main",
+    deps = [
+            ":server"],
+)
+
+scala_repl(
+    name = "server-repl",
+    deps = [
+            ":server"],
+)
