@@ -5,7 +5,7 @@ import IconButton from '@material-ui/core/IconButton';
 import GroupIcon from '@material-ui/icons/Group';
 import Drawer from '@material-ui/core/Drawer';
 
-export const Menu: React.FC = () =>
+export const Main: React.FC = () =>
     <div>
         <Drawer
             variant="permanent"

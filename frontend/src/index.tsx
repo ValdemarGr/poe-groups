@@ -1,7 +1,9 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+import {Landing} from './Landing';
 
 ReactDOM.render(
-    <Main />,
+    //<div>hello</div>,
+    <Landing />,
     document.getElementById('root')
 );
