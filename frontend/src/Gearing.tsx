@@ -22,17 +22,31 @@ import Button from '@material-ui/core/Button';
 import FormControl from '@material-ui/core/FormControl';
 import Select from '@material-ui/core/Select';
 import MenuItem from '@material-ui/core/MenuItem';
+import IconButton from '@material-ui/core/IconButton';
+import DeleteIcon from '@material-ui/icons/Delete'
+import EditIcon from '@material-ui/icons/Edit'
+import CancelIcon from '@material-ui/icons/Cancel'
+import Slide from '@material-ui/core/Slide';
 
 const useStyles = (names: string[]) => makeStyles((theme: Theme) => (
     createStyles({
         charForm: {
-            minWidth: 120
+            minWidth: 190
         },
         root: {
             flexGrow: 1
         },
         autocomplete: {
         }, ...(names.map(name => ({[name]: {"background-color": consistentRandomColor(name)}})).reduce(((x, y) => ({...x, ...y})), {}))
+    })
+))
+
+const tableRowStyle = makeStyles((theme: Theme) => (
+    createStyles({
+        dims: {
+            'height': '80px',
+            'width': '100%'
+        }
     })
 ))
 
@@ -50,8 +64,21 @@ const imgStyle = makeStyles((theme: Theme) => (
     })
 ))
 
+export type GearingLine = {
+    readonly characterName: string;
+    readonly itemName: string;
+    readonly power: number;
+}
+
 export type GearingProps = {
+    readonly lines: Array<GearingLine>;
     readonly selectableCharacters: Array<string>;
+    readonly onAddItem: (newItem: GearingLine) => void;
+    readonly onDeleteItem: (index: number) => void;
+}
+
+const getPrice = (itemName: string): number => {
+    return 200
 }
 
 const selections = [
@@ -128,6 +155,84 @@ const ShowItemImage: React.FC<ShowItemImageProps> = (p) => {
     )
 }
 
+type CharacterTableRowProps = {
+    readonly name: string;
+    readonly itemName: string;
+    readonly price: number;
+    readonly power: number;
+    readonly editPower: (newNumber: number) => void;
+    readonly deleteEntry: () => void;
+    readonly styleClasses: Record<string, any>;
+}
+
+const CharacterTableRow: React.FC<CharacterTableRowProps> = (p) => {
+    const classes = tableRowStyle()
+    const [inEditMode, setEditMode] = React.useState(false)
+
+    const show = (
+        <TableRow className={p.styleClasses[p.name]}>
+            <TableCell>{p.name}</TableCell>
+            <TableCell>{p.itemName}</TableCell>
+            <TableCell>{p.power}</TableCell>
+            <TableCell>{p.price}c</TableCell>
+            <TableCell>{p.power / p.price}ppc</TableCell>
+            <TableCell><IconButton onClick={() => setEditMode(true)}><EditIcon /></IconButton><IconButton onClick={() => p.deleteEntry()}><DeleteIcon /></IconButton></TableCell>
+        </TableRow>
+    )
+
+    const [editState, setEditState] = React.useState(0)
+
+    const edit = (
+        <Grid
+            className={`${p.styleClasses[p.name]} ${classes.dims}`}
+            container
+            spacing={0}
+            direction="row"
+            alignItems="center"
+            justify="center"
+        >
+            <Grid item xs={3}>
+                <TextField
+                    type="number"
+                    onChange={x => setEditState(+x.target.value)}
+                />
+            </Grid>
+            <Grid item xs={3}>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => {
+                        p.editPower(editState)
+                        setEditMode(false)
+                    }}
+                >Change</Button>
+            </Grid>
+            <Grid item xs={3}>
+                <IconButton onClick={() => setEditMode(false)}><CancelIcon /></IconButton>
+            </Grid>
+        </Grid>
+    )
+
+    return (
+        <>
+            {inEditMode ?
+                (
+                    <Slide direction="left" in={inEditMode}>
+                        {edit}
+                    </Slide >
+                )
+                : null}
+            {!inEditMode ?
+                (
+                    <Slide direction="left" in={!inEditMode}>
+                        {show}
+                    </Slide >
+                )
+                : null}
+        </>
+    )
+}
+
 export const Gearing: React.FC<GearingProps> = (p) => {
     const classes = useStyles(p.selectableCharacters)()
 
@@ -136,6 +241,9 @@ export const Gearing: React.FC<GearingProps> = (p) => {
     const [currentQuery, setCurrentQuery] = React.useState<string | null>(null)
     const [highligtImageName, setHighlightImageName] = React.useState<string | undefined>();
     const [highligtImageUrl, setHighlightImageUrl] = React.useState<string | undefined>();
+    const [selectedCharacters, setSelectedCharacters] = React.useState<Set<string>>(new Set(p.selectableCharacters));
+    const [toAddCharacter, setToAddCharacter] = React.useState<string | undefined>();
+    const [toAddPower, setToAddPower] = React.useState<number | undefined>();
 
     React.useEffect(() => {
         if (highligtImageName !== undefined) {
@@ -186,15 +294,17 @@ export const Gearing: React.FC<GearingProps> = (p) => {
                                 <Autocomplete
                                     multiple
                                     id="characters"
-                                    options={selections}
+                                    options={p.selectableCharacters}
                                     getOptionLabel={(e) => e}
-                                    defaultValue={selections}
-                                    renderTags={(xs) => {
-                                        return xs.map((x, i) => <Chip label={x} key={`chip-${i}`} className={
+                                    defaultValue={p.selectableCharacters}
+                                    onChange={(_, vs) => setSelectedCharacters(new Set(vs))}
+                                    renderTags={(xs, g) => {
+                                        return xs.map((x, i) => <Chip onDelete={() => {setSelectedCharacters(s => new Set(Array.from(s.values()).filter(v => v !== x)))}} label={x} key={`chip-${i}`} className={
                                             //@ts-ignore
                                             classes[x]
                                         } />)
                                     }}
+                                    value={Array.from(selectedCharacters)}
                                     renderInput={(e) => (
                                         <TextField
                                             {...e}
@@ -234,13 +344,39 @@ export const Gearing: React.FC<GearingProps> = (p) => {
                                     )}
                                 />
                             </Grid>
-                            <Grid item xs={3}>
-                                <FormControl className={classes.charForm} variant="outlined">
-                                    <InputLabel>Character</InputLabel>
-                                    <Select>
-                                        {p.selectableCharacters.map(c => <MenuItem value={c}>{c}</MenuItem>)}
-                                    </Select>
-                                </FormControl>
+                            <Grid item xs={6}>
+                                <Grid container>
+                                    <Grid item xs={3}>
+                                        <FormControl className={classes.charForm} >
+                                            <InputLabel>Character</InputLabel>
+                                            <Select onChange={(x) => setToAddCharacter(x.target.value as string)}>
+                                                {p.selectableCharacters.map(c => <MenuItem value={c}>{c}</MenuItem>)}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+                                    <Grid item xs={3}>
+                                        <TextField
+                                            type="number"
+                                            onChange={x => setToAddPower(+x.target.value)}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={3}>
+                                        <Box pt={1} />
+                                        <Button
+                                            variant="contained"
+                                            color="primary"
+                                            onClick={() => {
+                                                if (toAddPower !== undefined && toAddCharacter !== undefined && currentQuery !== null) {
+                                                    p.onAddItem({
+                                                        characterName: toAddCharacter,
+                                                        power: toAddPower,
+                                                        itemName: currentQuery
+                                                    })
+                                                }
+                                            }}
+                                        >Add to items</Button>
+                                    </Grid>
+                                </Grid>
                             </Grid>
                         </Grid>
                     </CardContent>
@@ -255,35 +391,27 @@ export const Gearing: React.FC<GearingProps> = (p) => {
                                     <TableRow>
                                         <TableCell>Character</TableCell>
                                         <TableCell>Item</TableCell>
+                                        <TableCell>Power</TableCell>
                                         <TableCell>Price</TableCell>
                                         <TableCell>Power/Chaos</TableCell>
+                                        <TableCell></TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    <TableRow className={classes["Olafur"]}>
-                                        <TableCell>Olafur</TableCell>
-                                        <TableCell>Shavs</TableCell>
-                                        <TableCell>140c</TableCell>
-                                        <TableCell>30ppc</TableCell>
-                                    </TableRow>
-                                    <TableRow className={classes["Olafur"]}>
-                                        <TableCell>Olafur</TableCell>
-                                        <TableCell>Deodres</TableCell>
-                                        <TableCell>2c</TableCell>
-                                        <TableCell>10ppc</TableCell>
-                                    </TableRow>
-                                    <TableRow className={classes["Edlav"]}>
-                                        <TableCell>Valde</TableCell>
-                                        <TableCell>Shroud 6l</TableCell>
-                                        <TableCell>550c</TableCell>
-                                        <TableCell>40ppc</TableCell>
-                                    </TableRow>
-                                    <TableRow className={classes["Maaksuuu"]}>
-                                        <TableCell>Markus</TableCell>
-                                        <TableCell>Wrath 21</TableCell>
-                                        <TableCell>30c</TableCell>
-                                        <TableCell>30ppc</TableCell>
-                                    </TableRow>
+                                    {p.lines.map<[GearingLine, number]>((x, i) => [x, i]).filter(([x, _]) => selectedCharacters.has(x.characterName)).map(([l, i]) => <CharacterTableRow
+                                        name={l.characterName}
+                                        power={l.power}
+                                        price={getPrice(l.itemName)}
+                                        itemName={l.itemName}
+                                        editPower={(np) => {
+                                            p.onDeleteItem(i)
+                                            p.onAddItem({...l, power: np})
+                                        }}
+                                        deleteEntry={() => {
+                                            p.onDeleteItem(i)
+                                        }}
+                                        styleClasses={classes}
+                                    />)}
                                 </TableBody>
                             </Table>
                         </TableContainer>
