@@ -30,8 +30,9 @@ import Slide from '@material-ui/core/Slide';
 
 const useStyles = (names: string[]) => makeStyles((theme: Theme) => (
     createStyles({
-        charForm: {
-            minWidth: 190
+        fullWidth: {
+            //minWidth: 190
+            width: '100%'
         },
         root: {
             flexGrow: 1
@@ -44,8 +45,6 @@ const useStyles = (names: string[]) => makeStyles((theme: Theme) => (
 const tableRowStyle = makeStyles((theme: Theme) => (
     createStyles({
         dims: {
-            'height': '80px',
-            'width': '100%'
         }
     })
 ))
@@ -67,7 +66,7 @@ const imgStyle = makeStyles((theme: Theme) => (
 export type GearingLine = {
     readonly characterName: string;
     readonly itemName: string;
-    readonly power: number;
+    readonly price: number;
 }
 
 export type GearingProps = {
@@ -75,10 +74,6 @@ export type GearingProps = {
     readonly selectableCharacters: Array<string>;
     readonly onAddItem: (newItem: GearingLine) => void;
     readonly onDeleteItem: (index: number) => void;
-}
-
-const getPrice = (itemName: string): number => {
-    return 200
 }
 
 const selections = [
@@ -159,7 +154,6 @@ type CharacterTableRowProps = {
     readonly name: string;
     readonly itemName: string;
     readonly price: number;
-    readonly power: number;
     readonly editPower: (newNumber: number) => void;
     readonly deleteEntry: () => void;
     readonly styleClasses: Record<string, any>;
@@ -173,9 +167,7 @@ const CharacterTableRow: React.FC<CharacterTableRowProps> = (p) => {
         <TableRow className={p.styleClasses[p.name]}>
             <TableCell>{p.name}</TableCell>
             <TableCell>{p.itemName}</TableCell>
-            <TableCell>{p.power}</TableCell>
             <TableCell>{p.price}c</TableCell>
-            <TableCell>{p.power / p.price}ppc</TableCell>
             <TableCell><IconButton onClick={() => setEditMode(true)}><EditIcon /></IconButton><IconButton onClick={() => p.deleteEntry()}><DeleteIcon /></IconButton></TableCell>
         </TableRow>
     )
@@ -183,34 +175,39 @@ const CharacterTableRow: React.FC<CharacterTableRowProps> = (p) => {
     const [editState, setEditState] = React.useState(0)
 
     const edit = (
-        <Grid
-            className={`${p.styleClasses[p.name]} ${classes.dims}`}
-            container
-            spacing={0}
-            direction="row"
-            alignItems="center"
-            justify="center"
-        >
-            <Grid item xs={3}>
-                <TextField
-                    type="number"
-                    onChange={x => setEditState(+x.target.value)}
-                />
-            </Grid>
-            <Grid item xs={3}>
-                <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => {
-                        p.editPower(editState)
-                        setEditMode(false)
-                    }}
-                >Change</Button>
-            </Grid>
-            <Grid item xs={3}>
-                <IconButton onClick={() => setEditMode(false)}><CancelIcon /></IconButton>
-            </Grid>
-        </Grid>
+        <TableRow className={p.styleClasses[p.name]}>
+            <TableCell colSpan={4}>
+                <Grid
+                    className={`${classes.dims}`}
+                    container
+                    spacing={0}
+                    direction="row"
+                    alignItems="center"
+                    justify="center"
+                >
+                    <Grid item xs={3}>
+                        <TextField
+                            type="number"
+                            label="Price (chaos)"
+                            onChange={x => setEditState(+x.target.value)}
+                        />
+                    </Grid>
+                    <Grid item xs={3}>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={() => {
+                                p.editPower(editState)
+                                setEditMode(false)
+                            }}
+                        >Change</Button>
+                    </Grid>
+                    <Grid item xs={3}>
+                        <IconButton onClick={() => setEditMode(false)}><CancelIcon /></IconButton>
+                    </Grid>
+                </Grid>
+            </TableCell>
+        </TableRow>
     )
 
     return (
@@ -243,7 +240,10 @@ export const Gearing: React.FC<GearingProps> = (p) => {
     const [highligtImageUrl, setHighlightImageUrl] = React.useState<string | undefined>();
     const [selectedCharacters, setSelectedCharacters] = React.useState<Set<string>>(new Set(p.selectableCharacters));
     const [toAddCharacter, setToAddCharacter] = React.useState<string | undefined>();
-    const [toAddPower, setToAddPower] = React.useState<number | undefined>();
+    const [toAddPrice, setToAddPrice] = React.useState<number | undefined>();
+    const [shownLinesFilter, setShownLines] = React.useState("")
+
+    const shownLines = shownLinesFilter !== "" ? p.lines.filter(x => x.itemName.includes(shownLinesFilter)) : p.lines
 
     React.useEffect(() => {
         if (highligtImageName !== undefined) {
@@ -328,7 +328,7 @@ export const Gearing: React.FC<GearingProps> = (p) => {
                 <Card>
                     <CardContent>
                         <Grid container spacing={3}>
-                            <Grid item xs={6}>
+                            <Grid item xs={3}>
                                 <Autocomplete
                                     id="item"
                                     options={currentList}
@@ -338,47 +338,56 @@ export const Gearing: React.FC<GearingProps> = (p) => {
                                     renderInput={(e) => (
                                         <TextField
                                             {...e}
-                                            variant="outlined"
                                             label="Item"
                                         />
                                     )}
                                 />
                             </Grid>
-                            <Grid item xs={6}>
-                                <Grid container>
-                                    <Grid item xs={3}>
-                                        <FormControl className={classes.charForm} >
-                                            <InputLabel>Character</InputLabel>
-                                            <Select onChange={(x) => setToAddCharacter(x.target.value as string)}>
-                                                {p.selectableCharacters.map(c => <MenuItem value={c}>{c}</MenuItem>)}
-                                            </Select>
-                                        </FormControl>
-                                    </Grid>
-                                    <Grid item xs={3}>
-                                        <TextField
-                                            type="number"
-                                            onChange={x => setToAddPower(+x.target.value)}
-                                        />
-                                    </Grid>
-                                    <Grid item xs={3}>
-                                        <Box pt={1} />
-                                        <Button
-                                            variant="contained"
-                                            color="primary"
-                                            onClick={() => {
-                                                if (toAddPower !== undefined && toAddCharacter !== undefined && currentQuery !== null) {
-                                                    p.onAddItem({
-                                                        characterName: toAddCharacter,
-                                                        power: toAddPower,
-                                                        itemName: currentQuery
-                                                    })
-                                                }
-                                            }}
-                                        >Add to items</Button>
-                                    </Grid>
-                                </Grid>
+                            <Grid item xs={3}>
+                                <FormControl className={classes.fullWidth}>
+                                    <InputLabel>Character</InputLabel>
+                                    <Select onChange={(x) => setToAddCharacter(x.target.value as string)}>
+                                        {p.selectableCharacters.map(c => <MenuItem value={c}>{c}</MenuItem>)}
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+                            <Grid item xs={3}>
+                                <TextField
+                                    className={classes.fullWidth}
+                                    type="number"
+                                    label="Cost (chaos)"
+                                    onChange={x => setToAddPrice(+x.target.value)}
+                                />
+                            </Grid>
+                            <Grid item xs={3}>
+                                <Box pt={1.6} />
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    onClick={() => {
+                                        if (toAddPrice !== undefined && toAddCharacter !== undefined && currentQuery !== null) {
+                                            p.onAddItem({
+                                                characterName: toAddCharacter,
+                                                price: toAddPrice,
+                                                itemName: currentQuery
+                                            })
+                                        }
+                                    }}
+                                >Add to items</Button>
                             </Grid>
                         </Grid>
+                    </CardContent>
+                </Card>
+            </Grid>
+            <Grid item xs={12}>
+                <Card>
+                    <CardContent>
+                        <TextField
+                            className={classes.fullWidth}
+                            type="text"
+                            label="Search for an item"
+                            onChange={x => setShownLines(x.target.value)}
+                        />
                     </CardContent>
                 </Card>
             </Grid>
@@ -391,21 +400,18 @@ export const Gearing: React.FC<GearingProps> = (p) => {
                                     <TableRow>
                                         <TableCell>Character</TableCell>
                                         <TableCell>Item</TableCell>
-                                        <TableCell>Power</TableCell>
                                         <TableCell>Price</TableCell>
-                                        <TableCell>Power/Chaos</TableCell>
                                         <TableCell></TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {p.lines.map<[GearingLine, number]>((x, i) => [x, i]).filter(([x, _]) => selectedCharacters.has(x.characterName)).map(([l, i]) => <CharacterTableRow
+                                    {shownLines.map<[GearingLine, number]>((x, i) => [x, i]).filter(([x, _]) => selectedCharacters.has(x.characterName)).map(([l, i]) => <CharacterTableRow
                                         name={l.characterName}
-                                        power={l.power}
-                                        price={getPrice(l.itemName)}
+                                        price={l.price}
                                         itemName={l.itemName}
                                         editPower={(np) => {
                                             p.onDeleteItem(i)
-                                            p.onAddItem({...l, power: np})
+                                            p.onAddItem({...l, price: np})
                                         }}
                                         deleteEntry={() => {
                                             p.onDeleteItem(i)
